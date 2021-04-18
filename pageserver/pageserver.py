@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 import socket    # Basic TCP/IP communication on the internet
 import _thread   # Response computation runs concurrently with main program
-
+import os        # Check file and directories
 
 def listen(portnum):
     """
@@ -91,8 +91,24 @@ def respond(sock):
 
     parts = request.split()
     if len(parts) > 1 and parts[0] == "GET":
-        transmit(STATUS_OK, sock)
-        transmit(CAT, sock)
+        # the path (not including docroot) is contained in parts[1] 
+        path = parts[1]
+        # get the filename and directory from the path
+        directory = os.path.split(path)[0]
+        fileName = os.path.split(path)[1]
+        # if there are any of the characters specified to return 403, return 403
+        if ".." in fileName or "~" in fileName or "//" in path:
+            transmit(STATUS_FORBIDDEN, sock)
+        # if the file does not exist, return 404
+        elif not os.path.isfile(fileName):
+            transmit(STATUS_NOT_FOUND, sock)
+        # otherwise this is a valid file, open it and return OK
+        elif fileName.endswith(".html") or fileName.endswith(".css"):
+            pageFile = open(fileName, "r")
+            transmit(STATUS_OK, sock)
+            transmit(pageFile.read(), sock)
+            pageFile.close()
+        
     else:
         log.info("Unhandled request: {}".format(request))
         transmit(STATUS_NOT_IMPLEMENTED, sock)
@@ -140,6 +156,14 @@ def main():
     port = options.PORT
     if options.DEBUG:
         log.setLevel(logging.DEBUG)
+    
+    # change the current directory
+    log.info("CWD = " + os.getcwd())
+    fullpath = os.path.join(os.getcwd(), options.DOCROOT)
+    if os.path.exists(fullpath):
+        os.chdir(fullpath)
+    else:
+        print("Path not found!")
     sock = listen(port)
     log.info("Listening on port {}".format(port))
     log.info("Socket is {}".format(sock))

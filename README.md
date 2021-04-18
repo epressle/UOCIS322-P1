@@ -18,7 +18,7 @@ The objectives of this mini-project are:
 * Designed to work in "user mode" (unprivileged),
 therefore using a port number above 1000.
 
-### Running ###
+### Running: ###
 
 * With a valid credentials.ini in the root folder, 'make run' should run the webserver.
 * 'make start' and 'make stop' should work as well.
